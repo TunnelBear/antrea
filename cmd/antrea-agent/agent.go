@@ -751,6 +751,15 @@ func run(o *Options) error {
 		go tcController.Run(stopCh)
 	}
 
+	if true { //features.DefaultFeatureGate.Enabled(features.SDN) {
+		sdnController := sdn.NewSDNController(
+		        k8sClient,
+                        ofClient,
+                        networkConfig)
+		go sdnController.Run(stopCh)
+	}
+
+
 	//  Start the localPodInformer
 	if localPodInformer.Evaluated() {
 		go localPodInformer.Get().Run(stopCh)
