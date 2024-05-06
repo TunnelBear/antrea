@@ -317,6 +317,7 @@ golangci-fix: $(GOLANGCI_LINT_BIN)
 
 .PHONY: clean
 clean:
+	@go clean -modcache
 	@rm -rf $(BINDIR)
 	@rm -rf $(DOCKER_CACHE)
 	@rm -rf $(GOLANGCI_LINT_BINDIR)
