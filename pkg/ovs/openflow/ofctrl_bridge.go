@@ -323,7 +323,7 @@ func (b *OFBridge) PacketRcvd(sw *ofctrl.OFSwitch, packet *ofctrl.PacketIn) {
 
 // SwitchConnected is a callback when the remote OFSwitch is connected.
 func (b *OFBridge) SwitchConnected(sw *ofctrl.OFSwitch) {
-	klog.Infof("OFSwitch is connected: %v", sw.DPID())
+	klog.Infof("OFSwitch is connected: %v controller-id %d", sw.DPID(), sw.GetControllerID())
 	b.SetOFSwitch(sw)
 	b.setPacketInFormatTo2()
 	b.ofSwitch.EnableMonitor()
