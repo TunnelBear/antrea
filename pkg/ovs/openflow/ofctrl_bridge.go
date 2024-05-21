@@ -209,6 +209,10 @@ type OFBridge struct {
 	tunMetadataLengthMap map[uint16]uint8
 }
 
+func (b *OFBridge) GetOfSwitch() *ofctrl.OFSwitch {
+	return b.ofSwitch
+}
+
 func (b *OFBridge) NewGroupTypeAll(id GroupIDType) Group {
 	return b.newGroupWithType(id, ofctrl.GroupAll)
 }
