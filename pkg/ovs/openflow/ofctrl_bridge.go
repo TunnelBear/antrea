@@ -25,6 +25,7 @@ import (
 	"antrea.io/ofnet/ofctrl"
 	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
+	log "github.com/sirupsen/logrus"
 
 	"antrea.io/antrea/pkg/agent/metrics"
 )
@@ -318,10 +319,13 @@ func (b *OFBridge) PacketRcvd(sw *ofctrl.OFSwitch, packet *ofctrl.PacketIn) {
 		return
 	}
 	category := packet.UserData[0]
+	log.Debug("PacketRcvd category ", category)
 	v, found := b.pktConsumers.Load(category)
 	if found {
 		pktInQueue, _ := v.(*PacketInQueue)
 		pktInQueue.AddOrDrop(packet)
+	} else {
+		log.Info("Controller ", sw.GetControllerID(), " PacketRcvd ", " but not found category", category)
 	}
 }
 
@@ -686,6 +690,11 @@ func (b *OFBridge) SubscribePacketIn(category uint8, pktInQueue *PacketInQueue) 
 	_, exist := b.pktConsumers.Load(category)
 	if exist {
 		return fmt.Errorf("packetIn category %d already exists", category)
+	}
+	if b.IsConnected() {
+		log.Info("Controller ", b.ofSwitch.GetControllerID(), " SubscribePacketIn category ", category)
+	} else {
+		log.Info("Controller not connected for SubscribePacketIn category ", category)
 	}
 	b.pktConsumers.Store(category, pktInQueue)
 	return nil

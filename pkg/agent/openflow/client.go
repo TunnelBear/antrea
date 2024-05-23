@@ -190,6 +190,12 @@ type Client interface {
 	// IsConnected returns the connection status between client and OFSwitch. The return value is true if the OFSwitch is connected.
 	IsConnected() bool
 
+	// Connect() for external controller to call
+	Connect(connCh chan struct{}) error 
+
+	// Connect() for external controller to identify
+	GetControllerID() uint16
+
 	// ReplayFlows should be called when a spurious disconnection occurs. After we reconnect to
 	// the OFSwitch, we need to replay all the flows cached by the client. ReplayFlows will try
 	// to replay as many flows as possible, and will log an error when a flow cannot be
@@ -245,6 +251,7 @@ type Client interface {
 	// RegisterPacketInHandler uses SubscribePacketIn to get PacketIn message and process received
 	// packets through registered handler.
 	RegisterPacketInHandler(packetHandlerReason uint8, packetInHandler PacketInHandler)
+	RegisterPacketAndRun(packetHandlerReason uint8, packetInHandler PacketInHandler, stopCh <-chan struct{})
 
 	StartPacketInHandler(stopCh <-chan struct{})
 	// Get traffic metrics of each NetworkPolicy rule.
@@ -418,6 +425,15 @@ func (c *client) GetFlowTableStatus() []binding.TableStatus {
 // IsConnected returns the connection status between client and OFSwitch.
 func (c *client) IsConnected() bool {
 	return c.bridge.IsConnected()
+}
+
+// Connect returns the connection status between client and OFSwitch.
+func (c *client) Connect(connCh chan struct{}) error {
+	return c.bridge.Connect(maxRetryForOFSwitch, connCh)
+}
+
+func (c *client) GetControllerID() uint16 {
+	return c.bridge.GetOfSwitch().GetControllerID()
 }
 
 // addFlows installs the flows on the OVS bridge and then add them into the flow cache. If the flow cache exists,

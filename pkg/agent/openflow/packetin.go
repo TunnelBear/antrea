@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
 
 	"antrea.io/libOpenflow/openflow15"
 	"antrea.io/libOpenflow/protocol"
@@ -25,6 +26,7 @@ import (
 	"antrea.io/ofnet/ofctrl"
 	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
+	log "github.com/sirupsen/logrus"
 
 	"antrea.io/antrea/pkg/ovs/openflow"
 )
@@ -93,6 +95,20 @@ func (c *client) RegisterPacketInHandler(packetHandlerCategory uint8, packetInHa
 	c.packetInHandlers[packetHandlerCategory] = packetInHandler
 }
 
+func (c *client) RegisterPacketAndRun(packetHandlerCategory uint8, packetInHandler PacketInHandler, stopCh <-chan struct{}) {
+	log.Info("RegisterPacketAndRun category ", packetHandlerCategory)
+	c.packetInHandlers[packetHandlerCategory] = packetInHandler
+       	featurePacketIn := newFeatureStartPacketIn(packetHandlerCategory, stopCh, c.packetInRate*2, c.packetInRate)
+	err := c.subscribeFeaturePacketIn(featurePacketIn)
+	if err != nil {
+		log.Error("received error %+v while subscribing packetIn for each feature", err)
+	}
+	for {
+		time.Sleep(1 * time.Second)
+		c.parsePacketIn(featurePacketIn)
+	}
+}
+
 // featureStartPacketIn contains packetIn resources specifically for each feature that uses packetIn.
 type featureStartPacketIn struct {
 	category      uint8
@@ -123,6 +139,7 @@ func (c *client) StartPacketInHandler(stopCh <-chan struct{}) {
 }
 
 func (c *client) subscribeFeaturePacketIn(featurePacketIn *featureStartPacketIn) error {
+	log.Info("subscribeFeaturePacketIn category ", featurePacketIn.category)
 	err := c.SubscribePacketIn(featurePacketIn.category, featurePacketIn.packetInQueue)
 	if err != nil {
 		return fmt.Errorf("subscribe %d packetIn failed %+v", featurePacketIn.category, err)
@@ -132,11 +149,13 @@ func (c *client) subscribeFeaturePacketIn(featurePacketIn *featureStartPacketIn)
 }
 
 func (c *client) parsePacketIn(featurePacketIn *featureStartPacketIn) {
+	log.Debug("parsePacketIn category ", featurePacketIn.category)
 	for {
 		pktIn := featurePacketIn.packetInQueue.GetRateLimited(featurePacketIn.stopCh)
 		if pktIn == nil {
 			return
 		}
+		log.Debug("Received packetIn category ", featurePacketIn.category)
 		// Use corresponding handler subscribed to the category to handle packetIn
 		if handler, ok := c.packetInHandlers[featurePacketIn.category]; ok {
 			klog.V(2).InfoS("Received packetIn", "category", featurePacketIn.category)

@@ -146,6 +146,8 @@ type Bridge interface {
 	ResumePacket(packetIn *ofctrl.PacketIn) error
 	// BuildPacketOut returns a new PacketOutBuilder.
 	BuildPacketOut() PacketOutBuilder
+	// GetOfSwitch for ofClient to return to controller
+	GetOfSwitch() *ofctrl.OFSwitch
 }
 
 // TableStatus represents the status of a specific flow table. The status is useful for debugging.
